@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Rapport Financier{% endblock %}
+
+{% block content %}
+<div class="stats shadow w-full mb-6">
+  <div class="stat bg-white">
+    <div class="stat-title">Total des Dons</div>
+    <div class="stat-value text-success">{{ total_dons_general }} XAF</div>
+  </div>
+  <div class="stat bg-white">
+    <div class="stat-title">Total des Dépenses</div>
+    <div class="stat-value text-error">{{ total_depenses_general }} XAF</div>
+  </div>
+  <div class="stat bg-white">
+    <div class="stat-title">Solde Final (Tous comptes)</div>
+    <div class="stat-value">{{ solde_final_general }} XAF</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-1 space-y-4">
+    {% for compte in comptes_data %}
+    <div class="card bg-white shadow-sm border border-slate-200">
+      <div class="card-body p-4">
+        <h2 class="card-title text-base">{{ compte.nom }}</h2>
+        <p class="text-2xl font-bold text-slate-800">{{ compte.solde_actuel }} XAF</p>
+        <div class="text-xs text-slate-500 space-y-1 mt-2">
+            <div class="flex justify-between"><span>Solde initial:</span> <span>{{ compte.solde_initial }} XAF</span></div>
+            <div class="flex justify-between"><span>+ Total Dons:</span> <span class="text-success">{{ compte.total_dons }} XAF</span></div>
+            <div class="flex justify-between"><span>- Total Dépenses:</span> <span class="text-error">{{ compte.total_depenses }} XAF</span></div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <p>Aucun compte financier n'a été créé.</p>
+    {% endfor %}
+  </div>
+
+  <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border border-slate-200">
+    <div class="p-4 bg-slate-50 border-b"><h3 class="font-semibold text-slate-800">Vue d'Ensemble</h3></div>
+    <div class="p-4"><canvas id="financeChart"></canvas></div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('financeChart').getContext('2d');
+    const financeChart = new Chart(ctx, {
+        type: 'doughnut', // Graphique en anneau
+        data: {
+            labels: {{ chart_labels|safe }},
+            datasets: [{
+                data: {{ chart_data|safe }},
+                backgroundColor: ['#22c55e', '#ef4444'], // Vert pour dons, Rouge pour dépenses
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+});
+</script>
+{% endblock %}

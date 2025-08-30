@@ -28,7 +28,7 @@
               {% if depense.is_active %}
               <tr class="hover:bg-slate-50">
                 <td class="p-3 text-slate-600">{{ depense.date_depense|date:"d/m/Y" }}</td>
-                <td class="p-3 font-semibold text-error">- {{ depense.montant }} €</td>
+                <td class="p-3 font-semibold text-error">- {{ depense.montant }} XAF</td>
                 <td class="p-3"><span class="badge badge-ghost">{{ depense.categorie }}</span></td>
                 <td class="p-3 text-slate-600">{{ depense.site.nom }}</td>
                 <td class="p-3 text-slate-500 truncate max-w-xs">{{ depense.description|default:"-" }}</td>

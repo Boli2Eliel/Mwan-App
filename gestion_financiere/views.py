@@ -1,11 +1,15 @@
 # gestion_financiere/views.py
-from django.views.generic import ListView, CreateView, UpdateView, View
+from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
+from django.db.models import Sum, Q
+import json
+from django.http import JsonResponse
 
-from .models import Don, Depense
+
+from .models import Don, Depense, CompteFinancier
 from .forms import DonForm, DepenseForm
 
 class DonListView(LoginRequiredMixin, ListView):
@@ -124,3 +128,69 @@ class DepenseDeleteView(LoginRequiredMixin, View):
         else:
             messages.error(request, "Action non autorisée.")
         return redirect('gestion_financiere:depense_list')
+    
+
+class RapportFinancierView(LoginRequiredMixin, TemplateView):
+    template_name = 'gestion_financiere/rapport_financier.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # Définir le queryset de base pour les comptes
+        comptes_queryset = CompteFinancier.objects.filter(is_active=True)
+        if not user.is_superuser and user.site:
+            comptes_queryset = comptes_queryset.filter(site=user.site)
+        
+        comptes_data = []
+        total_dons_general = 0
+        total_depenses_general = 0
+        solde_initial_general = 0
+
+        for compte in comptes_queryset:
+            dons = Don.objects.filter(compte=compte, is_active=True)
+            depenses = Depense.objects.filter(compte=compte, is_active=True)
+            
+            total_dons = dons.aggregate(Sum('montant'))['montant__sum'] or 0
+            total_depenses = depenses.aggregate(Sum('montant'))['montant__sum'] or 0
+            
+            solde_actuel = (compte.solde_initial + total_dons) - total_depenses
+            
+            comptes_data.append({
+                'nom': compte.nom,
+                'solde_initial': compte.solde_initial,
+                'total_dons': total_dons,
+                'total_depenses': total_depenses,
+                'solde_actuel': solde_actuel,
+            })
+            total_dons_general += total_dons
+            total_depenses_general += total_depenses
+            solde_initial_general += compte.solde_initial
+            
+        solde_final_general = (solde_initial_general + total_dons_general) - total_depenses_general
+
+        context['comptes_data'] = comptes_data
+        context['total_dons_general'] = total_dons_general
+        context['total_depenses_general'] = total_depenses_general
+        context['solde_final_general'] = solde_final_general
+        
+        # Préparation des données pour le graphique
+        context['chart_labels'] = json.dumps(['Total des Dons', 'Total des Dépenses'])
+        context['chart_data'] = json.dumps([float(total_dons_general), float(total_depenses_general)])
+
+        return context
+    
+def get_comptes_for_site(request, site_id):
+    # --- CORRECTION DE LA LOGIQUE DE SÉCURITÉ ---
+
+    # Un super-administrateur a le droit de voir les comptes de n'importe quel site.
+    # On ne fait donc aucune vérification pour lui.
+    if not request.user.is_superuser:
+        # Pour un utilisateur normal, on vérifie qu'il a bien un site
+        # ET que le site demandé est bien le sien.
+        if not request.user.site or request.user.site.id != site_id:
+            return JsonResponse({'error': 'Action non autorisée'}, status=403)
+
+    # Si la sécurité est passée, on exécute la requête.
+    comptes = CompteFinancier.objects.filter(site__id=site_id, is_active=True).values('id', 'nom')
+    return JsonResponse(list(comptes), safe=False)
