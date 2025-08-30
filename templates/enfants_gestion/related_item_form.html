@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+  <span class="flex items-center">
+    {% if icon_svg %}{{ icon_svg|safe }}{% endif %}
+    <span>{{ view_title }} <span class="font-bold text-slate-900">{{ enfant.prenom }} {{ enfant.nom }}</span></span>
+  </span>
+{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'enfants_gestion:enfant_detail' pk=enfant.pk %}" class="btn btn-ghost btn-sm">Annuler</a>
+    <button type="submit" form="related-item-form" class="btn btn-warning btn-sm text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+        Enregistrer
+    </button>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="related-item-form" class="bg-white rounded-lg shadow-sm border border-slate-200">
+    {% csrf_token %}
+    
+    <div class="p-4 bg-slate-50 border-b rounded-t-lg">
+        <h2 class="text-lg font-semibold text-slate-800">
+            Saisie des informations
+        </h2>
+    </div>
+
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2"> {# Ajout de la grille ici #}
+      {% for field in form %}
+        <div class="form-control w-full {% if field.field.widget.attrs.class == 'textarea' %}md:col-span-2{% endif %}"> {# Pour étendre les textareas #}
+            <label for="{{ field.id_for_label }}" class="label">
+                <span class="label-text text-slate-600 text-xs">{{ field.label }}</span>
+            </label>
+            {{ field }}
+            {% for error in field.errors %}
+                <div class="label">
+                    <span class="label-text-alt text-error">{{ error }}</span>
+                </div>
+            {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+</form>
+{% endblock %}

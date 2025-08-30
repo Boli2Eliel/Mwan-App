@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Aperçu du Rapport{% endblock %}
+
+{% block page_actions %}
+<div class="flex items-center space-x-2">
+    <a href="{% url 'enfants_gestion:enfant_download_export' %}?{{ download_params }}&format=xlsx" class="btn btn-success btn-sm text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+        Télécharger (XLSX)
+    </a>
+    <a href="{% url 'enfants_gestion:enfant_download_export' %}?{{ download_params }}&format=csv" class="btn btn-info btn-sm text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+        Télécharger (CSV)
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'enfants_gestion:enfant_export' %}" class="link link-primary text-sm">&larr; Retourner aux filtres</a>
+</div>
+
+{% include "enfants_gestion/partials/_tableau_enfants.html" with enfant_list=enfants_list %}
+
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Tableau de Bord{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="stat bg-white rounded-lg shadow-sm border border-slate-200">
+        <div class="stat-figure text-blue-500">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.964A3 3 0 013 16.5v-1.5a3 3 0 013-3h12a3 3 0 013 3v1.5a3 3 0 01-3 3m-12.75-9.401A4.5 4.5 0 009 6.345a4.5 4.5 0 00-9 0m12.75 0a4.5 4.5 0 00-9 0" /></svg>
+        </div>
+        <div class="stat-title text-slate-500">Enfants Actifs</div>
+        <div class="stat-value text-slate-800">{{ total_enfants_actifs }}</div>
+        {% if not user.is_superuser %}<div class="stat-desc text-slate-400">Dans votre site</div>{% endif %}
+    </div>
+
+    {% if user.is_superuser %}
+    <div class="stat bg-white rounded-lg shadow-sm border border-slate-200">
+        <div class="stat-figure text-purple-500">
+           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18h18a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0119.5 21h-15a2.25 2.25 0 01-2.25-2.25V5.25A2.25 2.25 0 014.5 3z" /></svg>
+        </div>
+        <div class="stat-title text-slate-500">Sites Gérés</div>
+        <div class="stat-value text-slate-800">{{ total_sites }}</div>
+    </div>
+    <div class="stat bg-white rounded-lg shadow-sm border border-slate-200">
+        <div class="stat-title text-slate-500">Site Principal</div>
+        <div class="stat-value text-purple-600">{{ enfants_par_site.0.nom }}</div>
+        <div class="stat-desc text-slate-400">{{ enfants_par_site.0.count }} enfants</div>
+    </div>
+    {% endif %}
+
+    <div class="stat bg-white rounded-lg shadow-sm border border-slate-200">
+        <div class="stat-figure text-amber-500">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18" /></svg>
+        </div>
+        <div class="stat-title text-slate-500">Anniversaires ce mois-ci</div>
+        <div class="stat-value text-slate-800">{{ anniversaires_du_mois.count }}</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+
+  <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border border-slate-200">
+    <div class="p-4 bg-slate-50 border-b">
+        <h3 class="font-semibold text-slate-800">Évolution des Dons</h3>
+    </div>
+    <div class="p-4">
+        <canvas id="donationsChart"></canvas>
+    </div>
+  </div>
+
+  <div class="space-y-6">
+      <div class="bg-white rounded-lg shadow-sm border border-slate-200">
+        <div class="p-4 bg-slate-50 border-b">
+            <h3 class="font-semibold text-slate-800">Activité Récente</h3>
+        </div>
+        <div class="p-4 text-sm space-y-4">
+          {% for record in activite_recente %}
+            <div class="flex items-start gap-3">
+              {% if record.history_type == '+' %} <div class="badge badge-success badge-xs mt-1"></div>
+              {% elif record.history_type == '~' %} <div class="badge badge-info badge-xs mt-1"></div>
+              {% else %} <div class="badge badge-error badge-xs mt-1"></div>
+              {% endif %}
+              <div class="text-slate-700">
+                Dossier de <a href="{% url 'enfants_gestion:enfant_detail' pk=record.instance.pk %}" class="font-bold link link-hover">{{ record.instance }}</a>
+                {% if record.history_type == '~' %}mis à jour{% elif record.history_type == '+' %}créé{% endif %} 
+                par <strong>{{ record.history_user.username|default:'Système' }}</strong>.
+                <div class="text-xs text-slate-400 font-mono">{{ record.history_date|timesince }} ago</div>
+              </div>
+            </div>
+          {% empty %}
+            <p class="text-slate-500">Aucune activité récente.</p>
+          {% endfor %}
+        </div>
+      </div>
+  </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('donationsChart');
+    if (ctx) { // S'assurer que le canvas existe avant de créer le graphique
+        const donationsChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ chart_labels|safe }},
+                datasets: [{
+                    label: 'Total des Dons (XAF)',
+                    data: {{ chart_data|safe }},
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

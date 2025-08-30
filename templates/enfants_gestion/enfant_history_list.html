@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+  Historique Complet : {{ enfant.prenom }} {{ enfant.nom }}
+{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'enfants_gestion:enfant_detail' pk=enfant.pk %}" class="btn btn-ghost btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+        Retour au dossier
+    </a>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm border border-slate-200">
+    <div class="p-4 bg-slate-50 border-b rounded-t-lg">
+        <h2 class="text-lg font-semibold text-slate-800">Toutes les modifications</h2>
+    </div>
+    <div class="p-4">
+        <ul class="timeline timeline-snap-icon max-md:timeline-compact timeline-vertical">
+          {% for record in enfant.history.all %}
+          <li>
+            <div class="timeline-middle">
+              {% if record.history_type == '+' %}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-success"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clip-rule="evenodd" /></svg>
+              {% elif record.history_type == '~' %}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-info"><path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201-4.42 5.5 5.5 0 011.453-1.654l.316.315a.75.75 0 01-1.06 1.06l-.315-.315a3.988 3.988 0 00-1.454 1.654 3.988 3.988 0 009.201 4.42 3.988 3.988 0 00-1.453-1.654l-.316.315a.75.75 0 01-1.06-1.06l.315-.315a5.485 5.485 0 011.454 1.654zM18.75 12.75a.75.75 0 01-.75.75h-3.5a.75.75 0 010-1.5h3.5a.75.75 0 01.75.75zM12.75 18.75a.75.75 0 01-.75.75h-3.5a.75.75 0 010-1.5h3.5a.75.75 0 01.75.75z" clip-rule="evenodd" /></svg>
+              {% else %}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-error"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM6.75 9.25a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z" /></svg>{% endif %}
+            </div>
+            <div class="timeline-end timeline-box text-sm">
+                <time class="font-mono italic text-xs text-slate-500">{{ record.history_date|date:"d/m/Y à H:i" }}</time>
+                <a href="{% url 'enfants_gestion:enfant_history_detail' pk=record.history_id %}" class="font-semibold text-slate-700 link link-hover">
+                    {% if record.history_type == '+' %}Dossier Créé{% elif record.history_type == '~' %}Dossier Mis à Jour{% else %}Dossier Supprimé{% endif %}
+                </a>
+                <span>par {{ record.history_user.username|default:"Système" }}</span>
+                {% if record.prev_record %}{% with changes=record.diff_against.prev_record %}{% for change in changes.changes %}
+                    <div class="text-xs mt-2 text-slate-600">Champ "<strong>{{ change.field|title }}</strong>" changé de "<em class="text-error">{{ change.old }}</em>" à "<em class="text-success">{{ change.new }}</em>".</div>
+                {% endfor %}{% endwith %}{% endif %}
+            </div>
+            {% if not forloop.last %}<hr/>{% endif %}
+          </li>
+          {% empty %}
+            <li><div class="timeline-end timeline-box text-sm text-slate-500">Aucun historique de modification.</div></li>
+          {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+  Base de Données des Enfants
+{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'enfants_gestion:enfant_create' %}" class="btn btn-warning btn-sm">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+    Nouveau Dossier
+  </a>
+{% endblock %}
+
+
+{% block content %}
+
+  {% if user.is_superuser %}
+  <div class="mb-6 dropdown">
+    <div tabindex="0" role="button" class="btn btn-sm btn-ghost flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 000 3.182l5.432 5.432a2.25 2.25 0 01.659 1.591v1.044c0 .54-.384 1.006-.917 1.096A48.32 48.32 0 0112 21c-2.755 0-5.455-.232-8.083-.678-.533-.09-.917-.556-.917-1.096v-1.044a2.25 2.25 0 01.659 1.591l5.432-5.432a2.25 2.25 0 000-3.182l-5.432-5.432a2.25 2.25 0 01-.659-1.591V4.774c0-.54.384-1.006-.917-1.096A48.32 48.32 0 0112 3z" /></svg>
+      <span>Filtrer par site</span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+    </div>
+    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+      <li>
+        <a href="{% url 'enfants_gestion:enfant_list' %}" class="{% if not selected_site_id %}font-bold{% endif %}">
+          Voir tous les sites
+        </a>
+      </li>
+      <div class="divider my-1"></div>
+      {% for site in all_sites %}
+        <li>
+          <a href="?site={{ site.id }}" class="{% if selected_site_id|stringformat:'s' == site.id|stringformat:'s' %}font-bold{% endif %}">
+            {{ site.nom }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% include "enfants_gestion/partials/_tableau_enfants.html" with enfant_list=enfant_list %}
+
+{% endblock %}
