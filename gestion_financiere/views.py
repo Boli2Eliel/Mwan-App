@@ -11,6 +11,8 @@ from django.http import JsonResponse
 
 from .models import Don, Depense, CompteFinancier
 from .forms import DonForm, DepenseForm
+from sites_gestion.models import SiteOrphelinat
+
 
 class DonListView(LoginRequiredMixin, ListView):
     model = Don
@@ -137,11 +139,25 @@ class RapportFinancierView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         
-        # Définir le queryset de base pour les comptes
         comptes_queryset = CompteFinancier.objects.filter(is_active=True)
-        if not user.is_superuser and user.site:
+        selected_site = None
+
+        # --- NOUVELLE LOGIQUE DE FILTRAGE ---
+        if user.is_superuser:
+            # On passe tous les sites au template pour le menu déroulant
+            context['all_sites'] = SiteOrphelinat.objects.all()
+            site_id = self.request.GET.get('site')
+            if site_id:
+                comptes_queryset = comptes_queryset.filter(site__id=site_id)
+                selected_site = get_object_or_404(SiteOrphelinat, pk=site_id)
+            context['selected_site'] = selected_site
+        else:
+            # Un utilisateur normal ne voit que les comptes de son site
             comptes_queryset = comptes_queryset.filter(site=user.site)
-        
+            selected_site = user.site
+        # --- FIN DE LA LOGIQUE ---
+
+        # Le reste du calcul se base sur le queryset déjà filtré
         comptes_data = []
         total_dons_general = 0
         total_depenses_general = 0
@@ -153,15 +169,12 @@ class RapportFinancierView(LoginRequiredMixin, TemplateView):
             
             total_dons = dons.aggregate(Sum('montant'))['montant__sum'] or 0
             total_depenses = depenses.aggregate(Sum('montant'))['montant__sum'] or 0
-            
             solde_actuel = (compte.solde_initial + total_dons) - total_depenses
             
             comptes_data.append({
-                'nom': compte.nom,
-                'solde_initial': compte.solde_initial,
-                'total_dons': total_dons,
+                'nom': compte.nom, 'solde_actuel': solde_actuel,
+                'solde_initial': compte.solde_initial, 'total_dons': total_dons,
                 'total_depenses': total_depenses,
-                'solde_actuel': solde_actuel,
             })
             total_dons_general += total_dons
             total_depenses_general += total_depenses
@@ -174,7 +187,6 @@ class RapportFinancierView(LoginRequiredMixin, TemplateView):
         context['total_depenses_general'] = total_depenses_general
         context['solde_final_general'] = solde_final_general
         
-        # Préparation des données pour le graphique
         context['chart_labels'] = json.dumps(['Total des Dons', 'Total des Dépenses'])
         context['chart_data'] = json.dumps([float(total_dons_general), float(total_depenses_general)])
 

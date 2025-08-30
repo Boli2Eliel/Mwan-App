@@ -1,21 +1,42 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Rapport Financier{% endblock %}
+{% block page_title %}
+  Rapport Financier {% if selected_site %}- {{ selected_site.nom }}{% else %}- Tous les sites{% endif %}
+{% endblock %}
 
 {% block content %}
+
+{% if user.is_superuser %}
+<div class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-slate-200">
+    <label class="form-control w-full max-w-xs">
+      <div class="label"><span class="label-text font-semibold text-slate-700 text-sm">Afficher le rapport pour :</span></div>
+      <select class="select select-bordered select-sm" onchange="if (this.value) window.location.href=this.value;">
+        <option value="{% url 'gestion_financiere:rapport_financier' %}" {% if not selected_site %}selected{% endif %}>
+          Tous les sites
+        </option>
+        {% for site in all_sites %}
+          <option value="?site={{ site.id }}" {% if selected_site.pk == site.pk %}selected{% endif %}>
+            {{ site.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+</div>
+{% endif %}
+
 <div class="stats shadow w-full mb-6">
-  <div class="stat bg-white">
-    <div class="stat-title">Total des Dons</div>
-    <div class="stat-value text-success">{{ total_dons_general }} XAF</div>
-  </div>
-  <div class="stat bg-white">
-    <div class="stat-title">Total des Dépenses</div>
-    <div class="stat-value text-error">{{ total_depenses_general }} XAF</div>
-  </div>
-  <div class="stat bg-white">
-    <div class="stat-title">Solde Final (Tous comptes)</div>
-    <div class="stat-value">{{ solde_final_general }} XAF</div>
-  </div>
+    <div class="stat bg-white">
+        <div class="stat-title">Total des Dons</div>
+        <div class="stat-value text-success text-2xl">{{ total_dons_general|floatformat:2 }} XAF</div>
+    </div>
+    <div class="stat bg-white">
+        <div class="stat-title">Total des Dépenses</div>
+        <div class="stat-value text-error text-2xl">{{ total_depenses_general|floatformat:2 }} XAF</div>
+    </div>
+    <div class="stat bg-white">
+        <div class="stat-title">Solde Final ({% if selected_site %}Ce site{% else %}Tous sites{% endif %})</div>
+        <div class="stat-value text-2xl">{{ solde_final_general|floatformat:2 }} XAF</div>
+    </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -24,16 +45,16 @@
     <div class="card bg-white shadow-sm border border-slate-200">
       <div class="card-body p-4">
         <h2 class="card-title text-base">{{ compte.nom }}</h2>
-        <p class="text-2xl font-bold text-slate-800">{{ compte.solde_actuel }} XAF</p>
+        <p class="text-2xl font-bold text-slate-800">{{ compte.solde_actuel|floatformat:2 }} XAF</p>
         <div class="text-xs text-slate-500 space-y-1 mt-2">
-            <div class="flex justify-between"><span>Solde initial:</span> <span>{{ compte.solde_initial }} XAF</span></div>
-            <div class="flex justify-between"><span>+ Total Dons:</span> <span class="text-success">{{ compte.total_dons }} XAF</span></div>
-            <div class="flex justify-between"><span>- Total Dépenses:</span> <span class="text-error">{{ compte.total_depenses }} XAF</span></div>
+            <div class="flex justify-between"><span>Solde initial:</span> <span>{{ compte.solde_initial|floatformat:2 }} XAF</span></div>
+            <div class="flex justify-between"><span>+ Total Dons:</span> <span class="text-success">{{ compte.total_dons|floatformat:2 }} XAF</span></div>
+            <div class="flex justify-between"><span>- Total Dépenses:</span> <span class="text-error">{{ compte.total_depenses|floatformat:2 }} XAF</span></div>
         </div>
       </div>
     </div>
     {% empty %}
-    <p>Aucun compte financier n'a été créé.</p>
+    <p class="text-slate-500 p-4">Aucun compte financier à afficher pour cette sélection.</p>
     {% endfor %}
   </div>
 
@@ -47,12 +68,12 @@
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('financeChart').getContext('2d');
     const financeChart = new Chart(ctx, {
-        type: 'doughnut', // Graphique en anneau
+        type: 'doughnut',
         data: {
             labels: {{ chart_labels|safe }},
             datasets: [{
                 data: {{ chart_data|safe }},
-                backgroundColor: ['#22c55e', '#ef4444'], // Vert pour dons, Rouge pour dépenses
+                backgroundColor: ['#22c55e', '#ef4444'],
             }]
         },
         options: { responsive: true, maintainAspectRatio: false }
