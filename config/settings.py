@@ -44,19 +44,23 @@ INSTALLED_APPS = [
     'utilisateurs',    
     'enfants_gestion',
     'gestion_financiere',
+    'gestion_personnel',
 
     'simple_history',
     'import_export',
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+   'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware', # DOIT ÊTRE AVANT
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware', # DOIT ÊTRE AVANT
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
+    # CE MIDDLEWARE DOIT ÊTRE ICI, APRÈS L'AUTHENTIFICATION
+    'simple_history.middleware.HistoryRequestMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -137,3 +141,6 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 AUTH_USER_MODEL = 'utilisateurs.CustomUser'
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = '/' # Redirige vers la page d'accueil (le tableau de bord)
+LOGOUT_REDIRECT_URL = 'login'

@@ -116,3 +116,34 @@ class DepenseForm(forms.ModelForm):
                     f"Cochez la case pour forcer la transaction."
                 )
         return cleaned_data
+    
+class FinanceExportForm(forms.Form):
+    TYPE_CHOICES = [
+        ('dons', 'Dons'),
+        ('depenses', 'Dépenses')
+    ]
+    FORMAT_CHOICES = [
+        ('xlsx', 'Excel (XLSX)'),
+        ('csv', 'CSV')
+    ]
+
+    type_donnees = forms.ChoiceField(
+        choices=TYPE_CHOICES, 
+        label="Type de données à exporter",
+        widget=forms.Select(attrs={'class': 'select select-bordered select-sm w-full'})
+    )
+    date_debut = forms.DateField(
+        required=False, 
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'input input-bordered input-sm w-full'}), 
+        label="Date de début"
+    )
+    date_fin = forms.DateField(
+        required=False, 
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'input input-bordered input-sm w-full'}), 
+        label="Date de fin"
+    )
+    format_fichier = forms.ChoiceField(
+        choices=FORMAT_CHOICES, 
+        label="Format du fichier",
+        widget=forms.Select(attrs={'class': 'select select-bordered select-sm w-full'})
+    )

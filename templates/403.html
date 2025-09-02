@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accès Refusé - Mwan'App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+</head>
+<body class="bg-slate-100 font-sans antialiased">
+
+    <div class="flex items-center justify-center min-h-screen text-center px-4">
+        <div class="max-w-lg">
+            <div class="text-red-500">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-20 h-20 mx-auto">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+            </div>
+            <h1 class="text-4xl font-bold text-slate-800 mt-4">Accès Refusé</h1>
+            <p class="text-slate-600 mt-4">
+                Désolé, votre rôle actuel ne vous donne pas les permissions nécessaires pour accéder à cette page.
+            </p>
+            <p class="text-slate-500 text-sm mt-2">
+                Si vous pensez qu'il s'agit d'une erreur, veuillez contacter un administrateur.
+            </p>
+            <div class="mt-8">
+                <a href="{% url 'dashboard:home' %}" class="btn btn-primary">
+                    Retourner au Tableau de Bord
+                </a>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

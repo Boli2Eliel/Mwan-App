@@ -3,10 +3,12 @@
 {% block page_title %}Registre des Dons{% endblock %}
 
 {% block page_actions %}
+  {% if perms.gestion_financiere.add_don %}
   <a href="{% url 'gestion_financiere:don_create' %}" class="btn btn-warning btn-sm text-white">
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
     Enregistrer un Don
   </a>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -20,28 +22,33 @@
               <th class="p-3">Donateur</th>
               <th class="p-3">Site</th>
               <th class="p-3">Description</th>
-              <th class="p-3 text-right">Actions</th> </tr>
+              <th class="p-3 text-right">Actions</th>
+            </tr>
           </thead>
           <tbody class="divide-y divide-slate-200 text-sm">
             {% for don in dons %}
               {% if don.is_active %}
               <tr class="hover:bg-slate-50">
                 <td class="p-3 text-slate-600">{{ don.date_don|date:"d/m/Y" }}</td>
-                <td class="p-3 font-semibold text-slate-800">{{ don.montant }} XAF</td>
+                <td class="p-3 font-semibold text-success">+ {{ don.montant }} XAF</td>
                 <td class="p-3 text-slate-600">{{ don.donateur }}</td>
                 <td class="p-3 text-slate-600">{{ don.site.nom }}</td>
                 <td class="p-3 text-slate-500 truncate max-w-xs">{{ don.description|default:"-" }}</td>
                 <td class="p-3">
                     <div class="flex items-center justify-end space-x-2">
+                        {% if perms.gestion_financiere.change_don %}
                         <a href="{% url 'gestion_financiere:don_update' pk=don.pk %}" class="tooltip" data-tip="Modifier">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-500 hover:text-secondary"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
                         </a>
-                        <form method="post" action="{% url 'gestion_financiere:don_delete' pk=don.pk %}" onsubmit="return confirm('Êtes-vous sûr de vouloir archiver ce don ?');">
+                        {% endif %}
+                        {% if perms.gestion_financiere.delete_don %}
+                        <form method="post" action="{% url 'gestion_financiere:don_delete' pk=don.pk %}" id="archive-don-form-{{ don.pk }}">
                             {% csrf_token %}
-                            <button type="submit" class="tooltip" data-tip="Archiver">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-500 hover:text-error"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11_0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                            <button type="button" onclick="confirmDonArchive('archive-don-form-{{ don.pk }}')" class="tooltip" data-tip="Archiver">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-500 hover:text-error"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                             </button>
                         </form>
+                        {% endif %}
                     </div>
                 </td>
               </tr>
@@ -53,4 +60,25 @@
         </table>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDonArchive(formId) {
+    Swal.fire({
+        title: 'Êtes-vous sûr ?',
+        text: "Cet enregistrement de don sera archivé.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Oui, archiver',
+        cancelButtonText: 'Annuler'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById(formId).submit();
+        }
+    })
+}
+</script>
 {% endblock %}

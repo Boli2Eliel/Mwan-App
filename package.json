@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-  "build:css": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css",
-  "watch:css": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch",
-  "dev": "concurrently \"npm run watch:css\" \"python manage.py runserver\""
-},
+    "build:css": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css",
+    "watch:css": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch",
+    "dev": "concurrently \"npm run watch:css\" \"python manage.py runserver\""
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+  Fiche de l'Employé
+{% endblock %}
+
+{% block page_actions %}
+  <div class="flex items-center space-x-2">
+    {% if perms.gestion_personnel.change_employe %}
+    <a href="{% url 'gestion_personnel:employe_update' pk=employe.pk %}" class="btn btn-warning btn-sm text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
+      Modifier
+    </a>
+    {% endif %}
+    
+    {% if perms.gestion_personnel.delete_employe %}
+    <form method="post" action="{% url 'gestion_personnel:employe_delete' pk=employe.pk %}" onsubmit="return confirm('Êtes-vous sûr de vouloir archiver cette fiche ?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-error btn-sm btn-outline">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25" /></svg>
+          Archiver
+        </button>
+    </form>
+    {% endif %}
+  </div>
+{% endblock %}
+
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-amber-400">
+  <div class="flex items-center gap-4 mb-4">
+      <div class="avatar placeholder">
+        <div class="bg-neutral-focus text-neutral-content rounded-full w-20">
+          <span class="text-3xl">{{ employe.prenom|first|upper }}{{ employe.nom|first|upper }}</span>
+        </div>
+      </div>
+      <div>
+        <h2 class="text-2xl font-bold text-slate-800">{{ employe.prenom }} {{ employe.nom }}</h2>
+        <p class="text-slate-500">{{ employe.poste }}</p>
+      </div>
+  </div>
+  
+  <dl class="space-y-3 text-sm mt-6">
+    <div class="grid grid-cols-3 gap-4 border-t pt-3">
+        <dt class="text-slate-500 col-span-1">Site(s) d'affectation</dt>
+        <dd class="font-medium text-slate-700 col-span-2">
+            {% if employe.utilisateur and employe.utilisateur.sites.all %}
+                <div class="flex flex-wrap gap-1">
+                {% for site in employe.utilisateur.sites.all %}
+                    <span class="badge badge-ghost">{{ site.nom }}</span>
+                {% endfor %}
+                </div>
+            {% elif employe.utilisateur %}
+                <span class="italic text-slate-500">Accès global (tous les sites)</span>
+            {% else %}
+                <span class="italic text-slate-500">N/A</span>
+            {% endif %}
+        </dd>
+    </div>
+    <div class="grid grid-cols-3 gap-4 border-t pt-3"><dt class="text-slate-500 col-span-1">Type de contrat</dt><dd class="font-medium text-slate-700 col-span-2">{{ employe.get_type_contrat_display }}</dd></div>
+    <div class="grid grid-cols-3 gap-4 border-t pt-3"><dt class="text-slate-500 col-span-1">Date d'embauche</dt><dd class="font-medium text-slate-700 col-span-2">{{ employe.date_embauche|date:"d F Y" }}</dd></div>
+    <div class="grid grid-cols-3 gap-4 border-t pt-3"><dt class="text-slate-500 col-span-1">Téléphone</dt><dd class="font-medium text-slate-700 col-span-2">{{ employe.telephone|default:"Non renseigné" }}</dd></div>
+    <div class="grid grid-cols-3 gap-4 border-t pt-3"><dt class="text-slate-500 col-span-1">Adresse</dt><dd class="font-medium text-slate-700 col-span-2">{{ employe.adresse|linebreaksbr|default:"Non renseignée" }}</dd></div>
+    
+    <div class="divider"></div>
+
+    <div class="grid grid-cols-3 gap-4 pt-3">
+        <dt class="text-slate-500 col-span-1">Compte utilisateur</dt>
+        <dd class="font-medium text-slate-700 col-span-2">
+            {% if employe.utilisateur %}
+                {{ employe.utilisateur.username }} (Rôle: {{ employe.utilisateur.get_role_display }})
+            {% else %}
+                <span class="badge badge-ghost">Aucun compte d'accès</span>
+            {% endif %}
+        </dd>
+    </div>
+  </dl>
+</div>
+{% endblock %}

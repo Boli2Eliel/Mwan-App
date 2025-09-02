@@ -6,11 +6,14 @@
 
 {% block page_actions %}
   <div class="flex items-center space-x-2">
+    {% if perms.enfants_gestion.change_enfant %}
     <a href="{% url 'enfants_gestion:enfant_update' pk=enfant.pk %}" class="btn btn-warning btn-sm text-white">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125L18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
       Modifier
     </a>
+    {% endif %}
     
+    {% if perms.enfants_gestion.delete_enfant %}
     <form method="post" action="{% url 'enfants_gestion:enfant_delete' pk=enfant.pk %}" id="archive-form">
         {% csrf_token %}
         <button type="button" onclick="confirmArchive()" class="btn btn-error btn-sm btn-outline">
@@ -18,6 +21,7 @@
           Archiver
         </button>
     </form>
+    {% endif %}
   </div>
 {% endblock %}
 
@@ -81,7 +85,9 @@
     <div class="bg-white rounded-lg shadow-sm border border-slate-200">
         <div class="p-4 bg-red-50 border-b flex justify-between items-center rounded-t-lg">
             <h3 class="font-semibold text-red-800 flex items-center gap-2"><svg class="w-5 h-5 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>Suivi Médical</h3>
+            {% if perms.enfants_gestion.add_suivimedical %}
             <a href="{% url 'enfants_gestion:suivi_medical_create' pk=enfant.pk %}" class="btn btn-xs btn-error btn-outline">+ Ajouter</a>
+            {% endif %}
         </div>
         <ul class="divide-y divide-slate-200 p-4 text-sm">
           {% for suivi in enfant.suivis_medicaux.all|dictsortreversed:"date_consultation" %}
@@ -93,11 +99,15 @@
                       <p class="text-slate-600">{{ suivi.diagnostic }}</p>
                   </div>
                   <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
+                      {% if perms.enfants_gestion.change_suivimedical %}
                       <a href="{% url 'enfants_gestion:suivi_medical_update' pk=suivi.pk %}" class="tooltip" data-tip="Modifier"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-500 hover:text-secondary"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg></a>
+                      {% endif %}
+                      {% if perms.enfants_gestion.delete_suivimedical %}
                       <form method="post" action="{% url 'enfants_gestion:suivi_medical_delete' pk=suivi.pk %}" onsubmit="return confirm('Êtes-vous sûr de vouloir archiver cette entrée ?');">
                           {% csrf_token %}
                           <button type="submit" class="tooltip" data-tip="Archiver"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-500 hover:text-error"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
                       </form>
+                      {% endif %}
                   </div>
               </div>
             </li>
@@ -111,7 +121,9 @@
     <div class="bg-white rounded-lg shadow-sm border border-slate-200">
         <div class="p-4 bg-sky-50 border-b flex justify-between items-center rounded-t-lg">
             <h3 class="font-semibold text-sky-800 flex items-center gap-2"><svg class="w-5 h-5 text-sky-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.905 59.905 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0l-.07.003-.02.001-.044.002-.087.004-.176.008a51.994 51.994 0 00-2.299 1.25c-.12.08-.235.166-.346.257m15.482 0l.07.003.02.001.044.002.087.004.176.008a51.994 51.994 0 012.299 1.25c.12.08.235.166.346.257m0 0a48.627 48.627 0 01-10.399-5.84a50.57 50.57 0 01-2.658.813m15.482 0a50.57 50.57 0 002.658.813a59.905 59.905 0 00-10.399-5.84a59.905 59.905 0 00-10.399 5.84c.896-.248 1.783-.52 2.658-.814m15.482 0l-.07-.003-.02-.001-.044-.002-.087-.004-.176-.008a51.994 51.994 0 00-2.299-1.25c-.12-.08-.235-.166-.346-.257m-15.482 0l.07-.003.02-.001.044-.002.087-.004.176-.008a51.994 51.994 0 01-2.299-1.25c-.12-.08-.235-.166-.346-.257m0 0a48.627 48.627 0 0010.399 5.84a50.57 50.57 0 002.658-.813m-15.482 0a50.57 50.57 0 012.658-.813m12.823 0l-12.823 0" /></svg>Dossier Scolaire</h3>
+            {% if perms.enfants_gestion.add_suiviscolaire %}
             <a href="{% url 'enfants_gestion:suivi_scolaire_create' pk=enfant.pk %}" class="btn btn-xs btn-info btn-outline">+ Ajouter</a>
+            {% endif %}
         </div>
         <ul class="divide-y divide-slate-200 p-4 text-sm">
           {% for annee in enfant.suivis_scolaires.all|dictsortreversed:"annee_scolaire" %}
@@ -123,11 +135,15 @@
                       <p class="text-slate-600">{{ annee.ecole }}</p>
                   </div>
                   <div class="flex items-center space-x-2 flex-shrink-0">
+                      {% if perms.enfants_gestion.change_suiviscolaire %}
                       <a href="{% url 'enfants_gestion:suivi_scolaire_update' pk=annee.pk %}" class="tooltip" data-tip="Modifier"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-500 hover:text-secondary"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg></a>
+                      {% endif %}
+                      {% if perms.enfants_gestion.delete_suiviscolaire %}
                       <form method="post" action="{% url 'enfants_gestion:suivi_scolaire_delete' pk=annee.pk %}" onsubmit="return confirm('Êtes-vous sûr de vouloir archiver cette entrée ?');">
                           {% csrf_token %}
                           <button type="submit" class="tooltip" data-tip="Archiver"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-500 hover:text-error"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
                       </form>
+                      {% endif %}
                   </div>
               </div>
             </li>
@@ -139,53 +155,54 @@
     </div>
 
     <div class="bg-white rounded-lg shadow-sm border border-slate-200">
-      <div class="p-4 bg-slate-50 border-b rounded-t-lg flex justify-between items-center">
-          <h3 class="font-semibold text-slate-800 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-slate-500"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
-              Historique des modifications
-          </h3>
-      </div>
-      <div class="p-4 max-h-96 overflow-y-auto">
-          <ul class="timeline timeline-snap-icon max-md:timeline-compact timeline-vertical">
-            {% for record in enfant.history.all|slice:":3" %}
-            <li>
-              <div class="timeline-middle">
-                {% if record.history_type == '+' %}
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-success"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clip-rule="evenodd" /></svg>
-                {% elif record.history_type == '~' %}
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-info"><path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201-4.42 5.5 5.5 0 011.453-1.654l.316.315a.75.75 0 01-1.06 1.06l-.315-.315a3.988 3.988 0 00-1.454 1.654 3.988 3.988 0 009.201 4.42 3.988 3.988 0 00-1.453-1.654l-.316.315a.75.75 0 01-1.06-1.06l.315-.315a5.485 5.485 0 011.454 1.654zM18.75 12.75a.75.75 0 01-.75.75h-3.5a.75.75 0 010-1.5h3.5a.75.75 0 01.75.75zM12.75 18.75a.75.75 0 01-.75.75h-3.5a.75.75 0 010-1.5h3.5a.75.75 0 01.75.75z" clip-rule="evenodd" /></svg>
-                {% else %}
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-error"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM6.75 9.25a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z" /></svg>
-                {% endif %}
-              </div>
-              <div class="timeline-end timeline-box text-sm">
-                  <time class="font-mono italic text-xs text-slate-500">{{ record.history_date|date:"d/m/Y à H:i" }}</time>
-                  <a href="{% url 'enfants_gestion:enfant_history_detail' pk=record.history_id %}" class="font-semibold text-slate-700 link link-hover">
-                      {% if record.history_type == '+' %}Dossier Créé{% elif record.history_type == '~' %}Dossier Mis à Jour{% else %}Dossier Supprimé{% endif %}
-                  </a>
-                  <span>par {{ request.user.username|default:"Système" }}</span>
-                  {% if record.prev_record %}{% with changes=record.diff_against.prev_record %}{% for change in changes.changes %}
-                      <div class="text-xs mt-2 text-slate-600">
-                          Champ "<strong>{{ change.field|title }}</strong>" changé de "<em class="text-error">{{ change.old }}</em>" à "<em class="text-success">{{ change.new }}</em>".
-                      </div>
-                  {% endfor %}{% endwith %}{% endif %}
-              </div>
-              {% if not forloop.last %}<hr/>{% endif %}
-            </li>
-            {% empty %}
-              <li><div class="timeline-end timeline-box text-sm text-slate-500">Aucun historique de modification.</div></li>
-            {% endfor %}
-          </ul>
-      </div>
-      {% if enfant.history.count > 3 %}
-      <div class="p-2 border-t text-center bg-slate-50 rounded-b-lg">
-          <a href="{% url 'enfants_gestion:enfant_history_list' pk=enfant.pk %}" class="link link-primary text-sm font-semibold">
-              Voir tout l'historique ({{ enfant.history.count }} entrées)
-          </a>
-      </div>
-      {% endif %}
+        <div class="p-4 bg-slate-50 border-b rounded-t-lg flex justify-between items-center">
+            <h3 class="font-semibold text-slate-800 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-slate-500"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+                Activité Récente
+            </h3>
+        </div>
+        <div class="p-4 max-h-96 overflow-y-auto">
+            <ul class="timeline timeline-snap-icon max-md:timeline-compact timeline-vertical">
+              {% for record in enfant.history.all|slice:":3" %}
+              <li>
+                <div class="timeline-middle">
+                  {% if record.history_type == '+' %}
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-success"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clip-rule="evenodd" /></svg>
+                  {% elif record.history_type == '~' %}
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-info"><path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201-4.42 5.5 5.5 0 011.453-1.654l.316.315a.75.75 0 01-1.06 1.06l-.315-.315a3.988 3.988 0 00-1.454 1.654 3.988 3.988 0 009.201 4.42 3.988 3.988 0 00-1.453-1.654l-.316.315a.75.75 0 01-1.06-1.06l.315-.315a5.485 5.485 0 011.454 1.654zM18.75 12.75a.75.75 0 01-.75.75h-3.5a.75.75 0 010-1.5h3.5a.75.75 0 01.75.75zM12.75 18.75a.75.75 0 01-.75.75h-3.5a.75.75 0 010-1.5h3.5a.75.75 0 01.75.75z" clip-rule="evenodd" /></svg>
+                  {% else %}
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-error"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM6.75 9.25a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z" /></svg>
+                  {% endif %}
+                </div>
+                <div class="timeline-end timeline-box text-sm">
+                    <time class="font-mono italic text-xs text-slate-500">{{ record.history_date|date:"d/m/Y à H:i" }}</time>
+                    <a href="{% url 'enfants_gestion:enfant_history_detail' pk=record.history_id %}" class="font-semibold text-slate-700 link link-hover">
+                        {% if record.history_type == '+' %}Dossier Créé{% elif record.history_type == '~' %}Dossier Mis à Jour{% else %}Dossier Supprimé{% endif %}
+                    </a>
+                    <span>par {% if record.history_user %}{{ record.history_user.username }}{% else %}Utilisateur Supprimé{% endif %}</span>
+                    {% if record.prev_record %}{% with changes=record.diff_against.prev_record %}{% for change in changes.changes %}
+                        <div class="text-xs mt-2 text-slate-600">
+                            Champ "<strong>{{ change.field|title }}</strong>" changé de "<em class="text-error">{{ change.old }}</em>" à "<em class="text-success">{{ change.new }}</em>".
+                        </div>
+                    {% endfor %}{% endwith %}{% endif %}
+                </div>
+                {% if not forloop.last %}<hr/>{% endif %}
+              </li>
+              {% empty %}
+                <li><div class="timeline-end timeline-box text-sm text-slate-500">Aucun historique de modification.</div></li>
+              {% endfor %}
+            </ul>
+        </div>
+        {% if enfant.history.count > 3 %}
+        <div class="p-2 border-t text-center bg-slate-50 rounded-b-lg">
+            <a href="{% url 'enfants_gestion:enfant_history_list' pk=enfant.pk %}" class="link link-primary text-sm font-semibold">
+                Voir tout l'historique ({{ enfant.history.count }} entrées)
+            </a>
+        </div>
+        {% endif %}
     </div>
   </div>
+
 </div>
 {% endblock %}
 
@@ -195,13 +212,16 @@
 function confirmArchive() {
     Swal.fire({
         title: 'Êtes-vous sûr ?',
-        text: "Le dossier de {{ enfant.prenom }} sera archivé et ne sera plus visible dans la liste principale.",
+        text: "Le dossier de {{ enfant.prenom|escapejs }} sera archivé et ne sera plus visible dans la liste principale.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Oui, archiver !',
-        cancelButtonText: 'Annuler'
+        cancelButtonText: 'Annuler',
+        customClass: {
+            popup: 'z-50' 
+        }
     }).then((result) => {
         if (result.isConfirmed) {
             document.getElementById('archive-form').submit();

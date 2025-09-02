@@ -1,12 +1,21 @@
 {% extends 'base.html' %}
 
 {% block page_title %}
-  Rapport Financier {% if selected_site %}- {{ selected_site.nom }}{% else %}- Tous les sites{% endif %}
+  Rapport Financier 
+  {% if selected_site %}
+    - {{ selected_site.nom }}
+  {% else %}
+    {% if user.is_superuser or user.is_comptable_central %}
+      - Tous les sites
+    {% elif user.site %}
+      - {{ user.site.nom }}
+    {% endif %}
+  {% endif %}
 {% endblock %}
 
 {% block content %}
 
-{% if user.is_superuser %}
+{% if user.is_superuser or user.is_comptable_central %}
 <div class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-slate-200">
     <label class="form-control w-full max-w-xs">
       <div class="label"><span class="label-text font-semibold text-slate-700 text-sm">Afficher le rapport pour :</span></div>
@@ -34,7 +43,7 @@
         <div class="stat-value text-error text-2xl">{{ total_depenses_general|floatformat:2 }} XAF</div>
     </div>
     <div class="stat bg-white">
-        <div class="stat-title">Solde Final ({% if selected_site %}Ce site{% else %}Tous sites{% endif %})</div>
+        <div class="stat-title">Solde Final ({% if selected_site %}Ce site{% else %}{% if user.is_superuser or user.is_comptable_central %}Tous sites{% else %}{{ user.site.nom }}{% endif %}{% endif %})</div>
         <div class="stat-value text-2xl">{{ solde_final_general|floatformat:2 }} XAF</div>
     </div>
 </div>
@@ -54,7 +63,7 @@
       </div>
     </div>
     {% empty %}
-    <p class="text-slate-500 p-4">Aucun compte financier à afficher pour cette sélection.</p>
+    <div class="bg-white p-4 rounded-lg text-slate-500">Aucun compte financier à afficher pour cette sélection.</div>
     {% endfor %}
   </div>
 
@@ -73,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
             labels: {{ chart_labels|safe }},
             datasets: [{
                 data: {{ chart_data|safe }},
-                backgroundColor: ['#22c55e', '#ef4444'],
+                backgroundColor: ['#22c55e', '#ef4444'], // Vert pour dons, Rouge pour dépenses
             }]
         },
         options: { responsive: true, maintainAspectRatio: false }
