@@ -14,13 +14,15 @@
     <div class="lg:col-span-1 space-y-6">
         <div class="card bg-white shadow-sm border border-slate-200">
             <div class="card-body">
-                <h2 class="card-title">Résumé</h2>
-                <p><strong>Enfant :</strong> {{ parrainage.enfant }}</p>
-                <p><strong>Parrain/Marraine :</strong> {{ parrainage.parrain_nom }}</p>
-                <p><strong>Montant mensuel :</strong> {{ parrainage.montant_mensuel }} XAF</p>
+                <h2 class="card-title text-base">Résumé du Parrainage</h2>
+                <p class="text-sm"><strong>Enfant :</strong> {{ parrainage.enfant }}</p>
+                <p class="text-sm"><strong>Parrain/Marraine :</strong> {{ parrainage.parrain_nom }}</p>
+                <p class="text-sm"><strong>Montant mensuel :</strong> {{ parrainage.montant_mensuel }} XAF</p>
                 {% with statut_paiement=parrainage.get_statut_paiement %}
-                <div class="card-actions justify-end">
-                    <span class="badge badge-lg badge-{{ statut_paiement.couleur }}">{{ statut_paiement.statut }}</span>
+                <div class="mt-4">
+                    <div class="text-xs text-slate-500">Statut du paiement</div>
+                    <div class="badge badge-lg badge-{{ statut_paiement.couleur }} w-full">{{ statut_paiement.statut }}</div>
+                    <div class="text-xs text-slate-400 text-center mt-1">Solde : {{ statut_paiement.difference|floatformat:2 }} XAF</div>
                 </div>
                 {% endwith %}
             </div>
@@ -29,11 +31,27 @@
         <div class="card bg-white shadow-sm border border-slate-200">
             <form method="post">
                 {% csrf_token %}
-                <div class="card-body">
-                    <h2 class="card-title">Ajouter un versement</h2>
-                    {{ versement_form.as_p }}
-                    <div class="card-actions justify-end">
-                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                <div class="card-body p-4">
+                    <h2 class="card-title text-base">Ajouter un versement</h2>
+                    <div class="hidden">
+                        {{ versement_form.type_transaction }}
+                        {{ versement_form.categorie }}
+                        {{ versement_form.parrainage_lie }}
+                    </div>
+                    <div class="form-control w-full">
+                        <label for="{{ versement_form.date_versement.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ versement_form.date_versement.label }}</span></label>
+                        {{ versement_form.date_versement }}
+                    </div>
+                    <div class="form-control w-full">
+                        <label for="{{ versement_form.montant.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ versement_form.montant.label }}</span></label>
+                        {{ versement_form.montant }}
+                    </div>
+                    <div class="form-control w-full">
+                        <label for="{{ versement_form.compte.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ versement_form.compte.label }}</span></label>
+                        {{ versement_form.compte }}
+                    </div>
+                    <div class="card-actions justify-end mt-4">
+                        <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
                     </div>
                 </div>
             </form>
@@ -46,23 +64,18 @@
             <div class="overflow-x-auto">
                 <table class="table">
                     <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Montant</th>
-                            <th>Compte de Dépôt</th>
-                            <th>Méthode</th>
-                        </tr>
+                        <tr><th>Date</th><th>Montant</th><th>Compte de Dépôt</th><th>Enregistré par</th></tr>
                     </thead>
                     <tbody>
-                    {% for versement in parrainage.versements.all %}
+                    {% for trans in parrainage.transactions.all %}
                         <tr>
-                            <td>{{ versement.date_versement|date:"d/m/Y" }}</td>
-                            <td>{{ versement.montant }} XAF</td>
-                            <td>{{ versement.compte.nom }}</td>
-                            <td>{{ versement.methode_paiement|default:"-" }}</td>
+                            <td>{{ trans.date_transaction|date:"d/m/Y" }}</td>
+                            <td class="font-semibold text-success">+ {{ trans.montant }} XAF</td>
+                            <td>{{ trans.compte.nom }}</td>
+                            <td>{{ trans.cree_par.username|default:"N/A" }}</td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="4" class="text-center">Aucun versement enregistré.</td></tr>
+                        <tr><td colspan="4" class="text-center p-4">Aucun versement enregistré pour ce parrainage.</td></tr>
                     {% endfor %}
                     </tbody>
                 </table>
