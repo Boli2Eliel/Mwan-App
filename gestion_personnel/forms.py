@@ -27,7 +27,7 @@ class EmployeForm(forms.ModelForm):
             'type_contrat': forms.Select(attrs={'class': 'select select-bordered select-sm w-full'}),
             'date_embauche': forms.DateInput(attrs={'type': 'date', 'class': 'input input-bordered input-sm w-full'}),
             'telephone': forms.TextInput(attrs={'class': 'input input-bordered input-sm w-full'}),
-            'adresse': forms.Textarea(attrs={'class': 'textarea textarea-bordered textarea-sm w-full h-24'}),
+            'adresse': forms.Textarea(attrs={'class': 'textarea textarea-bordered textarea-sm w-full h-16 border-slate-300'}),
             'sites': forms.CheckboxSelectMultiple, # Widget simple de cases à cocher
         }
 
