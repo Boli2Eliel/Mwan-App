@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    {{ super }}
+    {{ form.media.css }}
+{% endblock %}
+
+{% block page_title %}Modifier la Fiche Employé{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'gestion_personnel:employe_list' %}" class="btn btn-ghost btn-sm">Annuler</a>
+    <button type="submit" form="employe-form" class="btn btn-warning btn-sm text-white">Enregistrer</button>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="employe-form" class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+    {% csrf_token %}
+    <div class="space-y-8">
+        <div>
+            <h2 class="text-lg font-semibold text-slate-800 border-b pb-2 mb-6">Informations sur l'Employé</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                <div class="form-control w-full"><label for="{{ form.prenom.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.prenom.label }}</span></label>{{ form.prenom }}{% if form.prenom.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.prenom.errors.as_text }}</span></div>{% endif %}</div>
+                <div class="form-control w-full"><label for="{{ form.nom.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.nom.label }}</span></label>{{ form.nom }}{% if form.nom.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.nom.errors.as_text }}</span></div>{% endif %}</div>
+                <div class="form-control w-full"><label for="{{ form.poste.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.poste.label }}</span></label>{{ form.poste }}{% if form.poste.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.poste.errors.as_text }}</span></div>{% endif %}</div>
+                <div class="form-control w-full"><label for="{{ form.type_contrat.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.type_contrat.label }}</span></label>{{ form.type_contrat }}{% if form.type_contrat.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.type_contrat.errors.as_text }}</span></div>{% endif %}</div>
+                <div class="form-control w-full"><label for="{{ form.date_embauche.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.date_embauche.label }}</span></label>{{ form.date_embauche }}{% if form.date_embauche.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.date_embauche.errors.as_text }}</span></div>{% endif %}</div>
+                <div class="form-control w-full"><label for="{{ form.telephone.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.telephone.label }}</span></label>{{ form.telephone }}{% if form.telephone.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.telephone.errors.as_text }}</span></div>{% endif %}</div>
+                <div class="form-control w-full md:col-span-2"><label for="{{ form.adresse.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.adresse.label }}</span></label>{{ form.adresse }}{% if form.adresse.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.adresse.errors.as_text }}</span></div>{% endif %}</div>
+                <div class="md:col-span-2">
+                    {{ sites_options_json|json_script:"sites-options" }}
+                    
+                    {% if object %}
+                        {{ sites_selected_json|json_script:"sites-selected" }}
+                    {% else %}
+                        {{ form.sites.initial|default:'[]'|json_script:"sites-selected" }}
+                    {% endif %}
+
+                    {% include "gestion_personnel/partials/_dual_select_widget.html" with field=form.sites %}
+                    
+                    {% if form.sites.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.sites.errors.as_text }}</span></div>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="text-lg font-semibold text-slate-800 border-b pb-2 mb-6">Compte Utilisateur</h2>
+            {% if object.utilisateur %}
+                <p class="text-sm p-4 bg-slate-100 rounded-md">
+                    Cet employé est lié au compte : <strong>{{ object.utilisateur.username }}</strong>.
+                </p>
+            {% else %}
+                <div class="form-control w-full">
+                    <label for="{{ form.lier_utilisateur.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.lier_utilisateur.label }}</span></label>
+                    {{ form.lier_utilisateur }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function dualSelect() {
+    return {
+        allOptions: [],
+        chosenIds: [],
+        
+        // Méthode d'initialisation pour charger les données
+        init(options, selected) {
+            this.allOptions = options.map(opt => ({ id: opt[0], name: opt[1] }));
+            this.chosenIds = selected;
+        },
+
+        get availableOptions() { return this.allOptions.filter(opt => !this.chosenIds.includes(opt.id)); },
+        get chosenOptions() { return this.allOptions.filter(opt => this.chosenIds.includes(opt.id)); },
+        selectOption(option) { if (!this.chosenIds.includes(option.id)) { this.chosenIds.push(option.id); } },
+        deselectOption(option) { this.chosenIds = this.chosenIds.filter(id => id !== option.id); }
+    }
+}
+</script>
+{% endblock %}

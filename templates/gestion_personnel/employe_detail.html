@@ -14,9 +14,9 @@
     {% endif %}
     
     {% if perms.gestion_personnel.delete_employe %}
-    <form method="post" action="{% url 'gestion_personnel:employe_delete' pk=employe.pk %}" onsubmit="return confirm('Êtes-vous sûr de vouloir archiver cette fiche ?');">
+    <form method="post" action="{% url 'gestion_personnel:employe_delete' pk=employe.pk %}" id="archive-employe-form">
         {% csrf_token %}
-        <button type="submit" class="btn btn-error btn-sm btn-outline">
+        <button type="button" onclick="confirmEmployeArchive()" class="btn btn-error btn-sm btn-outline">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25" /></svg>
           Archiver
         </button>
@@ -44,16 +44,14 @@
     <div class="grid grid-cols-3 gap-4 border-t pt-3">
         <dt class="text-slate-500 col-span-1">Site(s) d'affectation</dt>
         <dd class="font-medium text-slate-700 col-span-2">
-            {% if employe.utilisateur and employe.utilisateur.sites.all %}
+            {% if employe.sites.all %}
                 <div class="flex flex-wrap gap-1">
-                {% for site in employe.utilisateur.sites.all %}
+                {% for site in employe.sites.all %}
                     <span class="badge badge-ghost">{{ site.nom }}</span>
                 {% endfor %}
                 </div>
-            {% elif employe.utilisateur %}
-                <span class="italic text-slate-500">Accès global (tous les sites)</span>
             {% else %}
-                <span class="italic text-slate-500">N/A</span>
+                <span class="italic text-slate-500">Aucun site assigné</span>
             {% endif %}
         </dd>
     </div>
@@ -76,4 +74,24 @@
     </div>
   </dl>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmEmployeArchive() {
+    Swal.fire({
+        title: 'Êtes-vous sûr ?',
+        text: "La fiche de {{ employe.prenom|escapejs }} {{ employe.nom|escapejs }} sera archivée.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonText: 'Annuler',
+        confirmButtonText: 'Oui, archiver'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('archive-employe-form').submit();
+        }
+    })
+}
+</script>
 {% endblock %}
