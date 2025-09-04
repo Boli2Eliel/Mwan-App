@@ -1,28 +1,67 @@
 {% extends 'base.html' %}
+{% load auth_extras %}
 
 {% block page_title %}Grand Livre des Transactions{% endblock %}
 
 {% block page_actions %}
-  {% if perms.gestion_financiere.add_transaction %}
   <div class="flex items-center space-x-2">
-    <a href="{% url 'gestion_financiere:entree_create' %}" class="btn btn-success btn-sm text-white">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-      Ajouter une Entrée
-    </a>
-    <a href="{% url 'gestion_financiere:sortie_create' %}" class="btn btn-error btn-sm text-white">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" /></svg>
-      Ajouter une Sortie
-    </a>
+    {% if perms.gestion_financiere.add_transaction %}
+    <a href="{% url 'gestion_financiere:entree_create' %}" class="btn btn-success btn-sm text-white">+ Entrée</a>
+    <a href="{% url 'gestion_financiere:sortie_create' %}" class="btn btn-error btn-sm text-white">- Sortie</a>
+    {% endif %}
+
+    <div class="dropdown dropdown-end">
+        <button tabindex="0" role="button" class="btn btn-ghost btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Exporter
+        </button>
+        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+            <li>
+                <a href="{% url 'gestion_financiere:transaction_export' %}?{{ request.GET.urlencode }}&format=xlsx">
+                    Format Excel (.xlsx)
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'gestion_financiere:transaction_export' %}?{{ request.GET.urlencode }}&format=csv">
+                    Format CSV (.csv)
+                </a>
+            </li>
+        </ul>
+    </div>
   </div>
-  {% endif %}
 {% endblock %}
 
 {% block content %}
+<div class="p-4 bg-white rounded-lg shadow-sm border border-slate-200 mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        {% if show_site_filter %}
+        <div class="form-control">
+            <label class="label"><span class="label-text text-xs">Filtrer par site</span></label>
+            <select name="site" class="select select-bordered select-sm" onchange="this.form.submit()">
+              {% if is_global_user %}<option value="">Tous les sites</option>
+              {% else %}<option value="">Tous mes sites</option>
+              {% endif %}
+              {% for site in sites_for_filter %}
+                <option value="{{ site.id }}" {% if selected_site_id|stringformat:'s' == site.id|stringformat:'s' %}selected{% endif %}>{{ site.nom }}</option>
+              {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <div class="form-control md:col-span-2">
+            <label class="label"><span class="label-text text-xs">Rechercher (description, catégorie, montant)</span></label>
+            <div class="join">
+                <input type="search" name="q" value="{{ search_query }}" placeholder="Votre recherche..." class="input input-bordered input-sm join-item w-full">
+                <button type="submit" class="btn btn-sm join-item">Chercher</button>
+            </div>
+        </div>
+    </form>
+</div>
+
 <div x-data="{ activeTab: 'all' }">
     <div role="tablist" class="tabs tabs-bordered mb-6">
-        <a role="tab" class="tab" @click.prevent="activeTab = 'all'" :class="{ 'tab-active': activeTab === 'all' }">Toutes les Transactions</a>
-        <a role="tab" class="tab" @click.prevent="activeTab = 'entrees'" :class="{ 'tab-active': activeTab === 'entrees' }">Entrées (Dons, Parrainages...)</a>
-        <a role="tab" class="tab" @click.prevent="activeTab = 'sorties'" :class="{ 'tab-active': activeTab === 'sorties' }">Sorties (Dépenses)</a>
+        <a role="tab" class="tab" @click.prevent="activeTab = 'all'" :class="{ 'tab-active': activeTab === 'all' }">Toutes</a>
+        <a role="tab" class="tab" @click.prevent="activeTab = 'entrees'" :class="{ 'tab-active': activeTab === 'entrees' }">Entrées</a>
+        <a role="tab" class="tab" @click.prevent="activeTab = 'sorties'" :class="{ 'tab-active': activeTab === 'sorties' }">Sorties</a>
     </div>
 
     <div class="bg-white rounded-lg shadow-sm border border-slate-200">
@@ -43,7 +82,7 @@
                     <tr x-show="activeTab === 'all' || (activeTab === 'entrees' && '{{trans.type_transaction}}' === 'entree') || (activeTab === 'sorties' && '{{trans.type_transaction}}' === 'sortie')" x-transition>
                       <td>{{ trans.date_transaction|date:"d/m/Y" }}</td>
                       <td>{{ trans.compte.nom }}</td>
-                      <td class="text-white">
+                      <td>
                         {% if trans.type_transaction == 'sortie' %}<span class="badge badge-error ">{{ trans.categorie }}</span>
                         {% elif trans.categorie == 'Don' %}<span class="badge badge-success ">{{ trans.categorie }}</span>
                         {% elif trans.categorie == 'Parrainage' %}<span class="badge badge-info ">{{ trans.categorie }}</span>
@@ -55,17 +94,25 @@
                           {% if trans.type_transaction == 'sortie' %}-{% else %}+{% endif %} {{ trans.montant }} XAF
                       </td>
                       <td class="p-3">
-                        <div class="flex items-center justify-end">
+                        <div class="flex items-center justify-end space-x-2">
                           {% if perms.gestion_financiere.change_transaction %}
                           <a href="{% url 'gestion_financiere:transaction_update' pk=trans.pk %}" class="tooltip" data-tip="Modifier">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-500 hover:text-secondary"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
                           </a>
                           {% endif %}
+                          {% if perms.gestion_financiere.delete_transaction %}
+                          <form method="post" action="{% url 'gestion_financiere:transaction_delete' pk=trans.pk %}" onsubmit="return confirm('Sûr ?');">
+                              {% csrf_token %}
+                              <button type="submit" class="tooltip" data-tip="Archiver">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-500 hover:text-error"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                              </button>
+                          </form>
+                          {% endif %}
                         </div>
                       </td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="6" class="text-center p-8">Aucune transaction à afficher.</td></tr>
+                    <tr><td colspan="6" class="text-center p-8">Aucune transaction à afficher pour les critères sélectionnés.</td></tr>
                 {% endfor %}
               </tbody>
             </table>

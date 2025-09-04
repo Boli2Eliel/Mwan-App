@@ -42,7 +42,7 @@ class TransactionForm(forms.ModelForm):
         elif transaction_type == 'sortie':
             self.fields['categorie'].choices = self.CATEGORIE_SORTIE_CHOICES
 
-            
+
 class ParrainageForm(forms.ModelForm):
     class Meta:
         model = Parrainage
@@ -65,6 +65,7 @@ class ParrainageForm(forms.ModelForm):
             enfants_parraines_ids = [pk for pk in enfants_parraines_ids if pk != self.instance.enfant.pk]
 
         self.fields['enfant'].queryset = Enfant.objects.filter(is_active=True).exclude(id__in=enfants_parraines_ids)
+
 
 class FinanceExportForm(forms.Form):
     TYPE_CHOICES = [

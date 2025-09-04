@@ -30,12 +30,78 @@ class TransactionListView(LoginRequiredMixin, PermissionRequiredMixin, ListView)
     paginate_by = 25
 
     def get_queryset(self):
+        # Cette méthode gère maintenant TOUS les filtres (permissions, site et recherche)
         user = self.request.user
-        queryset = Transaction.objects.filter(is_active=True).select_related('compte', 'parrainage_lie__enfant', 'cree_par')
+        queryset = Transaction.objects.filter(is_active=True).select_related('compte', 'cree_par')
+
         is_global_finance = (user.is_superuser or user.is_comptable_central)
-        if is_global_finance:
-            return queryset
-        return queryset.filter(compte__site__in=user.sites.all())
+        if not is_global_finance:
+            queryset = queryset.filter(compte__site__in=user.sites.all())
+        
+        site_id = self.request.GET.get('site')
+        if site_id and is_global_finance:
+            queryset = queryset.filter(compte__site__id=site_id)
+
+        query = self.request.GET.get('q')
+        if query:
+            queryset = queryset.filter(
+                Q(description__icontains=query) |
+                Q(categorie__icontains=query) |
+                Q(montant__icontains=query)
+            )
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # On ajoute le formulaire d'export au contexte pour l'afficher dans la modale
+        context['export_form'] = FinanceExportForm()
+        
+        is_global_finance = (user.is_superuser or user.is_comptable_central)
+        is_multi_site_user = user.sites.count() > 1
+        show_filter = is_global_finance or is_multi_site_user
+        context['show_site_filter'] = show_filter
+
+        if show_filter:
+            if is_global_finance:
+                context['sites_for_filter'] = SiteOrphelinat.objects.all()
+            else:
+                context['sites_for_filter'] = user.sites.all()
+            context['selected_site_id'] = self.request.GET.get('site')
+        
+        context['search_query'] = self.request.GET.get('q', '')
+        return context
+
+    def post(self, request, *args, **kwargs):
+        # Cette méthode est déclenchée par le formulaire de la modale
+        form = FinanceExportForm(request.POST)
+        if form.is_valid():
+            # On réutilise get_queryset pour avoir la liste déjà filtrée par site/recherche
+            queryset = self.get_queryset()
+            
+            # On applique les filtres de date supplémentaires du formulaire d'export
+            date_debut = form.cleaned_data.get('date_debut')
+            date_fin = form.cleaned_data.get('date_fin')
+            if date_debut:
+                queryset = queryset.filter(date_transaction__gte=date_debut)
+            if date_fin:
+                queryset = queryset.filter(date_transaction__lte=date_fin)
+                
+            dataset = TransactionResource().export(queryset)
+            
+            format_fichier = form.cleaned_data.get('format_fichier')
+            if format_fichier == 'xlsx':
+                response = HttpResponse(dataset.xlsx, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                response['Content-Disposition'] = 'attachment; filename="export_transactions.xlsx"'
+            else:
+                response = HttpResponse(dataset.csv, content_type='text/csv')
+                response['Content-Disposition'] = 'attachment; filename="export_transactions.csv"'
+            return response
+        
+        # Si le formulaire n'est pas valide, on ré-affiche la page avec les erreurs
+        return self.get(request, *args, **kwargs)
+    
 
 class EntreeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Transaction
@@ -312,3 +378,31 @@ def get_comptes_for_site(request, site_id):
     
     comptes = CompteFinancier.objects.filter(site__id=site_id, is_active=True).values('id', 'nom')
     return JsonResponse(list(comptes), safe=False)
+
+# =======================================================================
+# VUE POUR L'EXPORTATION
+# =======================================================================
+
+class TransactionExportView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'gestion_financiere.view_transaction'
+
+    def get(self, request, *args, **kwargs):
+        # On crée une instance de la vue de liste pour réutiliser sa logique de filtrage
+        list_view = TransactionListView()
+        list_view.request = request
+        queryset = list_view.get_queryset()
+        
+        # On prépare le jeu de données à exporter
+        dataset = TransactionResource().export(queryset)
+        
+        # On choisit le format (Excel par défaut)
+        file_format = request.GET.get('format', 'xlsx')
+        
+        if file_format == 'csv':
+            response = HttpResponse(dataset.csv, content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="export_transactions.csv"'
+        else: # xlsx par défaut
+            response = HttpResponse(dataset.xlsx, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename="export_transactions.xlsx"'
+            
+        return response

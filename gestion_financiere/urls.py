@@ -3,7 +3,8 @@ from .views import (
     TransactionListView, EntreeCreateView, SortieCreateView, TransactionUpdateView, TransactionDeleteView,
     ParrainageListView, ParrainageDetailView, ParrainageCreateView, ParrainageUpdateView, ParrainageDeleteView,
     RapportFinancierView,
-    get_comptes_for_site
+    get_comptes_for_site,
+    TransactionExportView # <-- Assurez-vous que cet import est présent
 )
 
 app_name = 'gestion_financiere'
@@ -15,6 +16,9 @@ urlpatterns = [
     path('transactions/sortie/ajouter/', SortieCreateView.as_view(), name='sortie_create'),
     path('transactions/<int:pk>/modifier/', TransactionUpdateView.as_view(), name='transaction_update'),
     path('transactions/<int:pk>/archiver/', TransactionDeleteView.as_view(), name='transaction_delete'),
+    
+    # URL POUR L'EXPORT (LIGNE AJOUTÉE)
+    path('transactions/exporter/', TransactionExportView.as_view(), name='transaction_export'),
     
     # URLs pour les Parrainages
     path('parrainages/', ParrainageListView.as_view(), name='parrainage_list'),
