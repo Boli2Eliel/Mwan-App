@@ -1,76 +1,216 @@
-# =======================================================================
-# IMPORTS
-# =======================================================================
 import json
-from urllib.parse import urlencode
 from datetime import date
+from itertools import chain
+from operator import attrgetter
 
-# --- Imports de Django ---
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.db.models import Sum
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
+from django.db.models import Sum, Q, F
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import TemplateView, ListView, CreateView, UpdateView
+from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DetailView
 
-# --- Imports des applications locales ---
-from .models import CompteFinancier, Don, Depense
-from .forms import DonForm, DepenseForm, FinanceExportForm
-from .resources import DonResource, DepenseResource
+from .models import CompteFinancier, Parrainage, Transaction, Enfant
+from .forms import TransactionForm, ParrainageForm, FinanceExportForm
+from .resources import TransactionResource
 from sites_gestion.models import SiteOrphelinat
-from enfants_gestion.models import Enfant
 
 
 # =======================================================================
-# VUES CONCERNANT LE MODÈLE DON
+# VUES POUR LES TRANSACTIONS
 # =======================================================================
 
-class DonListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
-    model = Don
-    template_name = 'gestion_financiere/don_list.html'
-    context_object_name = 'dons'
-    permission_required = 'gestion_financiere.view_don'
-    paginate_by = 20
+class TransactionListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    model = Transaction
+    template_name = 'gestion_financiere/transaction_list.html'
+    context_object_name = 'transactions'
+    permission_required = 'gestion_financiere.view_transaction'
+    paginate_by = 25
 
     def get_queryset(self):
         user = self.request.user
-        # Optimisation : pre-charge les données du site et du compte
-        queryset = Don.objects.filter(is_active=True).select_related('site', 'compte').order_by('-date_don')
-        
+        queryset = Transaction.objects.filter(is_active=True).select_related('compte', 'parrainage_lie__enfant', 'cree_par')
         is_global_finance = (user.is_superuser or user.is_comptable_central)
         if is_global_finance:
             return queryset
-        
-        return queryset.filter(site__in=user.sites.all())
+        return queryset.filter(compte__site__in=user.sites.all())
 
-class DonCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
-    model = Don
-    form_class = DonForm
-    template_name = 'gestion_financiere/don_form.html'
-    permission_required = 'gestion_financiere.add_don'
-    success_url = reverse_lazy('gestion_financiere:don_list')
+class EntreeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Transaction
+    form_class = TransactionForm
+    template_name = 'gestion_financiere/transaction_form.html'
+    permission_required = 'gestion_financiere.add_transaction'
+    success_url = reverse_lazy('gestion_financiere:transaction_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = "Enregistrer une Entrée (Don, Parrainage...)"
+        return context
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
+        kwargs['transaction_type'] = 'entree'
         return kwargs
 
+    def get_initial(self):
+        return {'type_transaction': 'entree'}
+
     def form_valid(self, form):
-        if not self.request.user.is_superuser:
-            # Pour un utilisateur avec un seul site, on l'assigne automatiquement
-            if self.request.user.sites.count() == 1:
-                form.instance.site = self.request.user.sites.first()
-        messages.success(self.request, "Le don a été enregistré avec succès.")
+        form.instance.cree_par = self.request.user
+        messages.success(self.request, "L'entrée a été enregistrée avec succès.")
         return super().form_valid(form)
 
-class DonUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
-    model = Don
-    form_class = DonForm
-    template_name = 'gestion_financiere/don_form.html'
-    permission_required = 'gestion_financiere.change_don'
-    success_url = reverse_lazy('gestion_financiere:don_list')
+class SortieCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Transaction
+    form_class = TransactionForm
+    template_name = 'gestion_financiere/transaction_form.html'
+    permission_required = 'gestion_financiere.add_transaction'
+    success_url = reverse_lazy('gestion_financiere:transaction_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = "Enregistrer une Sortie (Dépense)"
+        return context
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        kwargs['transaction_type'] = 'sortie'
+        return kwargs
+
+    def get_initial(self):
+        return {'type_transaction': 'sortie'}
+
+    def form_valid(self, form):
+        form.instance.cree_par = self.request.user
+        messages.success(self.request, "La sortie a été enregistrée avec succès.")
+        return super().form_valid(form)
+
+class TransactionUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = Transaction
+    form_class = TransactionForm
+    template_name = 'gestion_financiere/transaction_form.html'
+    permission_required = 'gestion_financiere.change_transaction'
+    success_url = reverse_lazy('gestion_financiere:transaction_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        # La vue de modification passe le type de la transaction existante
+        kwargs['transaction_type'] = self.object.type_transaction
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = "Modifier une Transaction"
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, "La transaction a été mise à jour avec succès.")
+        return super().form_valid(form)
+    
+        
+class TransactionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'gestion_financiere.delete_transaction'
+
+    def post(self, request, *args, **kwargs):
+        transaction_obj = get_object_or_404(Transaction, pk=kwargs['pk'])
+        can_delete = False
+        user = request.user
+        is_global_finance = (user.is_superuser or user.is_comptable_central)
+        if is_global_finance:
+            can_delete = True
+        elif transaction_obj.compte.site in user.sites.all():
+            can_delete = True
+
+        if can_delete:
+            transaction_obj.is_active = False
+            transaction_obj.save()
+            messages.success(request, "La transaction a été archivée.")
+        else:
+            messages.error(request, "Action non autorisée.")
+        return redirect('gestion_financiere:transaction_list')
+
+# =======================================================================
+# VUES CONCERNANT LE MODÈLE PARRAINAGE
+# =======================================================================
+
+class ParrainageListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    model = Parrainage
+    template_name = 'gestion_financiere/parrainage_list.html'
+    context_object_name = 'parrainages'
+    permission_required = 'gestion_financiere.view_parrainage'
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Parrainage.objects.filter(is_active=True).select_related('enfant__site').order_by('-date_debut')
+        is_global_finance = (user.is_superuser or user.is_comptable_central)
+        if is_global_finance:
+            return queryset
+        return queryset.filter(enfant__site__in=user.sites.all())
+
+class ParrainageDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
+    model = Parrainage
+    template_name = 'gestion_financiere/parrainage_detail.html'
+    context_object_name = 'parrainage'
+    permission_required = 'gestion_financiere.view_parrainage'
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Parrainage.objects.select_related('enfant__site').prefetch_related('transactions__compte')
+        is_global_finance = (user.is_superuser or user.is_comptable_central)
+        if is_global_finance:
+            return queryset
+        return queryset.filter(enfant__site__in=user.sites.all())
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        initial_data = {
+            'type_transaction': 'entree',
+            'categorie': 'Parrainage',
+            'parrainage_lie': self.object,
+            'montant': self.object.montant_mensuel,
+            'description': f'Versement pour {self.object}'
+        }
+        context['versement_form'] = TransactionForm(user=self.request.user, transaction_type='entree', initial=initial_data)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = TransactionForm(request.POST, user=request.user, transaction_type='entree')
+
+        if form.is_valid():
+            versement = form.save(commit=False)
+            versement.cree_par = request.user
+            versement.parrainage_lie = self.object
+            versement.type_transaction = 'entree'
+            versement.categorie = 'Parrainage'
+            versement.save()
+            messages.success(request, "Le versement a été ajouté avec succès.")
+        else:
+            messages.error(request, f"Erreur dans le formulaire de versement : {form.errors.as_text()}")
+        return redirect('gestion_financiere:parrainage_detail', pk=self.object.pk)
+
+class ParrainageCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Parrainage
+    form_class = ParrainageForm
+    template_name = 'gestion_financiere/parrainage_form.html'
+    permission_required = 'gestion_financiere.add_parrainage'
+    success_url = reverse_lazy('gestion_financiere:parrainage_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Le parrainage pour {form.instance.enfant} a été créé avec succès.")
+        return super().form_valid(form)
+
+class ParrainageUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = Parrainage
+    form_class = ParrainageForm
+    template_name = 'gestion_financiere/parrainage_form.html'
+    permission_required = 'gestion_financiere.change_parrainage'
+    success_url = reverse_lazy('gestion_financiere:parrainage_list')
 
     def get_queryset(self):
         user = self.request.user
@@ -78,122 +218,32 @@ class DonUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
         is_global_finance = (user.is_superuser or user.is_comptable_central)
         if is_global_finance:
             return queryset
-        return queryset.filter(site__in=user.sites.all())
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
+        return queryset.filter(enfant__site__in=user.sites.all())
 
     def form_valid(self, form):
-        messages.success(self.request, "Le don a été mis à jour avec succès.")
+        messages.success(self.request, f"Le parrainage pour {form.instance.enfant} a été mis à jour.")
         return super().form_valid(form)
+    
 
-class DonDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = 'gestion_financiere.delete_don'
+class ParrainageDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'gestion_financiere.delete_parrainage'
 
     def post(self, request, *args, **kwargs):
-        don = get_object_or_404(Don, pk=kwargs['pk'])
+        parrainage = get_object_or_404(Parrainage, pk=kwargs['pk'])
         can_delete = False
         user = request.user
         is_global_finance = (user.is_superuser or user.is_comptable_central)
-
         if is_global_finance:
             can_delete = True
-        elif don.site in user.sites.all():
+        elif parrainage.enfant.site in user.sites.all():
             can_delete = True
-
         if can_delete:
-            don.is_active = False
-            don.save()
-            messages.success(request, "L'enregistrement du don a été archivé.")
+            parrainage.is_active = False
+            parrainage.save()
+            messages.success(request, "Le parrainage a été archivé.")
         else:
             messages.error(request, "Action non autorisée.")
-        return redirect('gestion_financiere:don_list')
-
-# =======================================================================
-# VUES CONCERNANT LE MODÈLE DEPENSE
-# =======================================================================
-
-class DepenseListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
-    model = Depense
-    template_name = 'gestion_financiere/depense_list.html'
-    context_object_name = 'depenses'
-    permission_required = 'gestion_financiere.view_depense'
-    paginate_by = 20
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = Depense.objects.filter(is_active=True).select_related('site', 'compte').order_by('-date_depense')
-        is_global_finance = (user.is_superuser or user.is_comptable_central)
-        if is_global_finance:
-            return queryset
-        return queryset.filter(site__in=user.sites.all())
-
-class DepenseCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
-    model = Depense
-    form_class = DepenseForm
-    template_name = 'gestion_financiere/depense_form.html'
-    permission_required = 'gestion_financiere.add_depense'
-    success_url = reverse_lazy('gestion_financiere:depense_list')
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        if not self.request.user.is_superuser:
-            if self.request.user.sites.count() == 1:
-                form.instance.site = self.request.user.sites.first()
-        messages.success(self.request, "La dépense a été enregistrée avec succès.")
-        return super().form_valid(form)
-
-class DepenseUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
-    model = Depense
-    form_class = DepenseForm
-    template_name = 'gestion_financiere/depense_form.html'
-    permission_required = 'gestion_financiere.change_depense'
-    success_url = reverse_lazy('gestion_financiere:depense_list')
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = super().get_queryset()
-        is_global_finance = (user.is_superuser or user.is_comptable_central)
-        if is_global_finance:
-            return queryset
-        return queryset.filter(site__in=user.sites.all())
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        messages.success(self.request, "La dépense a été mise à jour avec succès.")
-        return super().form_valid(form)
-
-class DepenseDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = 'gestion_financiere.delete_depense'
-
-    def post(self, request, *args, **kwargs):
-        depense = get_object_or_404(Depense, pk=kwargs['pk'])
-        can_delete = False
-        user = request.user
-        is_global_finance = (user.is_superuser or user.is_comptable_central)
-
-        if is_global_finance:
-            can_delete = True
-        elif depense.site in user.sites.all():
-            can_delete = True
-
-        if can_delete:
-            depense.is_active = False
-            depense.save()
-            messages.success(request, "L'enregistrement de la dépense a été archivé.")
-        else:
-            messages.error(request, "Action non autorisée.")
-        return redirect('gestion_financiere:depense_list')
+        return redirect('gestion_financiere:parrainage_list')
 
 # =======================================================================
 # VUES DES RAPPORTS ET API
@@ -201,66 +251,64 @@ class DepenseDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
 class RapportFinancierView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     template_name = 'gestion_financiere/rapport_financier.html'
-    permission_required = 'gestion_financiere.view_don'
+    permission_required = 'gestion_financiere.view_transaction'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         comptes_queryset = CompteFinancier.objects.filter(is_active=True)
-        selected_site = None
+        transactions_queryset = Transaction.objects.filter(is_active=True)
+        
         is_global_finance = (user.is_superuser or user.is_comptable_central)
-
         if is_global_finance:
             context['all_sites'] = SiteOrphelinat.objects.all()
             site_id = self.request.GET.get('site')
             if site_id:
                 comptes_queryset = comptes_queryset.filter(site__id=site_id)
-                selected_site = get_object_or_404(SiteOrphelinat, pk=site_id)
-            context['selected_site'] = selected_site
+                transactions_queryset = transactions_queryset.filter(compte__site__id=site_id)
+                context['selected_site'] = get_object_or_404(SiteOrphelinat, pk=site_id)
         else:
-            comptes_queryset = comptes_queryset.filter(site__in=user.sites.all())
+            sites_autorises = user.sites.all()
+            comptes_queryset = comptes_queryset.filter(site__in=sites_autorises)
+            transactions_queryset = transactions_queryset.filter(compte__site__in=sites_autorises)
         
         comptes_data = []
-        total_dons_general = 0
-        total_depenses_general = 0
-        solde_initial_general = 0
         for compte in comptes_queryset:
-            dons = Don.objects.filter(compte=compte, is_active=True)
-            depenses = Depense.objects.filter(compte=compte, is_active=True)
-            total_dons = dons.aggregate(Sum('montant'))['montant__sum'] or 0
-            total_depenses = depenses.aggregate(Sum('montant'))['montant__sum'] or 0
-            solde_actuel = (compte.solde_initial + total_dons) - total_depenses
-            comptes_data.append({
-                'nom': compte.nom, 'solde_actuel': solde_actuel,
-                'solde_initial': compte.solde_initial, 'total_dons': total_dons,
-                'total_depenses': total_depenses,
-            })
-            total_dons_general += total_dons
-            total_depenses_general += total_depenses
-            solde_initial_general += compte.solde_initial
-        solde_final_general = (solde_initial_general + total_dons_general) - total_depenses_general
+            entrees = transactions_queryset.filter(compte=compte, type_transaction='entree').aggregate(total=Sum('montant'))['total'] or 0
+            sorties = transactions_queryset.filter(compte=compte, type_transaction='sortie').aggregate(total=Sum('montant'))['total'] or 0
+            solde_actuel = (compte.solde_initial + entrees) - sorties
+            comptes_data.append({'nom': compte.nom, 'solde_actuel': solde_actuel, 'total_entrees': entrees, 'total_depenses': sorties, 'solde_initial': compte.solde_initial})
+            
+        total_entrees_general = transactions_queryset.filter(type_transaction='entree').aggregate(total=Sum('montant'))['total'] or 0
+        total_depenses_general = transactions_queryset.filter(type_transaction='sortie').aggregate(total=Sum('montant'))['total'] or 0
+        solde_initial_general = comptes_queryset.aggregate(total=Sum('solde_initial'))['total'] or 0
+        solde_final_general = (solde_initial_general + total_entrees_general) - total_depenses_general
+
+        toutes_transactions = transactions_queryset.order_by('-date_transaction')
         context['comptes_data'] = comptes_data
-        context['total_dons_general'] = total_dons_general
+        context['total_entrees_general'] = total_entrees_general
         context['total_depenses_general'] = total_depenses_general
         context['solde_final_general'] = solde_final_general
-        context['chart_labels'] = json.dumps(['Total des Dons', 'Total des Dépenses'])
-        context['chart_data'] = json.dumps([float(total_dons_general), float(total_depenses_general)])
+        context['transactions_recentes'] = toutes_transactions[:10]
+        context['chart_labels'] = json.dumps(['Total des Entrées', 'Total des Dépenses'])
+        context['chart_data'] = json.dumps([float(total_entrees_general), float(total_depenses_general)])
+
         return context
 
 def get_comptes_for_site(request, site_id):
     user = request.user
     if not user.is_authenticated:
-        return JsonResponse({'error': 'Authentification requise'}, status=401)
+        return JsonResponse({}, status=401)
     
     can_view = False
     is_global_finance = (user.is_superuser or user.is_comptable_central)
     if is_global_finance:
         can_view = True
-    elif int(site_id) in user.sites.all().values_list('id', flat=True):
+    elif user.sites.filter(pk=site_id).exists():
         can_view = True
-
+    
     if not can_view:
         return JsonResponse({'error': 'Action non autorisée'}, status=403)
-
+    
     comptes = CompteFinancier.objects.filter(site__id=site_id, is_active=True).values('id', 'nom')
     return JsonResponse(list(comptes), safe=False)

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{% if object %}Modifier un Parrainage{% else %}Nouveau Parrainage{% endif %}{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'gestion_financiere:parrainage_list' %}" class="btn btn-ghost btn-sm">Annuler</a>
+    <button type="submit" form="parrainage-form" class="btn btn-warning btn-sm text-white">Enregistrer</button>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="parrainage-form" class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+        {% for field in form %}
+        <div class="form-control w-full">
+            <label for="{{ field.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ field.label }}</span></label>
+            {{ field }}
+            {% if field.errors %}<div class="label"><span class="label-text-alt text-error">{{ field.errors.as_text }}</span></div>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</form>
+{% endblock %}

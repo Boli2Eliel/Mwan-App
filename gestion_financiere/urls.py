@@ -1,22 +1,29 @@
-# gestion_financiere/urls.py
 from django.urls import path
-from .views import DonListView, DonCreateView, DonUpdateView, DonDeleteView, DepenseCreateView, DepenseUpdateView, DepenseListView, DepenseDeleteView, RapportFinancierView, get_comptes_for_site
+from .views import (
+    TransactionListView, EntreeCreateView, SortieCreateView, TransactionUpdateView, TransactionDeleteView,
+    ParrainageListView, ParrainageDetailView, ParrainageCreateView, ParrainageUpdateView, ParrainageDeleteView,
+    RapportFinancierView,
+    get_comptes_for_site
+)
 
 app_name = 'gestion_financiere'
 
 urlpatterns = [
-    # URLs des Dons
-    path('dons/', DonListView.as_view(), name='don_list'),
-    path('dons/ajouter/', DonCreateView.as_view(), name='don_create'),
-    path('dons/<int:pk>/modifier/', DonUpdateView.as_view(), name='don_update'),
-    path('dons/<int:pk>/supprimer/', DonDeleteView.as_view(), name='don_delete'),
-
-    # URLs des Dépenses
-    path('depenses/', DepenseListView.as_view(), name='depense_list'),
-    path('depenses/ajouter/', DepenseCreateView.as_view(), name='depense_create'),
-    path('depenses/<int:pk>/modifier/', DepenseUpdateView.as_view(), name='depense_update'),
-    path('depenses/<int:pk>/supprimer/', DepenseDeleteView.as_view(), name='depense_delete'),
-
+    # URLs pour les Transactions
+    path('transactions/', TransactionListView.as_view(), name='transaction_list'),
+    path('transactions/entree/ajouter/', EntreeCreateView.as_view(), name='entree_create'),
+    path('transactions/sortie/ajouter/', SortieCreateView.as_view(), name='sortie_create'),
+    path('transactions/<int:pk>/modifier/', TransactionUpdateView.as_view(), name='transaction_update'),
+    path('transactions/<int:pk>/archiver/', TransactionDeleteView.as_view(), name='transaction_delete'),
+    
+    # URLs pour les Parrainages
+    path('parrainages/', ParrainageListView.as_view(), name='parrainage_list'),
+    path('parrainages/<int:pk>/', ParrainageDetailView.as_view(), name='parrainage_detail'),
+    path('parrainages/ajouter/', ParrainageCreateView.as_view(), name='parrainage_create'),
+    path('parrainages/<int:pk>/modifier/', ParrainageUpdateView.as_view(), name='parrainage_update'),
+    path('parrainages/<int:pk>/supprimer/', ParrainageDeleteView.as_view(), name='parrainage_delete'),
+    
+    # URLs pour les Rapports et API
     path('rapports/', RapportFinancierView.as_view(), name='rapport_financier'),
     path('api/get-comptes/<int:site_id>/', get_comptes_for_site, name='api_get_comptes_for_site'),
 ]

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+    {{ form_title|default:"Nouvelle Transaction" }}
+{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'gestion_financiere:transaction_list' %}" class="btn btn-ghost btn-sm">Annuler</a>
+    <button type="submit" form="transaction-form" class="btn btn-warning btn-sm text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+        Enregistrer
+    </button>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="transaction-form" class="bg-white p-6 rounded-lg shadow-sm border border-slate-200"
+      x-data="{ categorie: '{{ form.categorie.value|default:'' }}' }">
+    {% csrf_token %}
+
+    {{ form.type_transaction }}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+        <div class="form-control w-full">
+            <label for="{{ form.compte.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.compte.label }}</span></label>
+            {{ form.compte }}
+            {% if form.compte.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.compte.errors.as_text }}</span></div>{% endif %}
+        </div>
+        
+        <div class="form-control w-full">
+            <label for="{{ form.categorie.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.categorie.label }}</span></label>
+            <select name="{{ form.categorie.name }}" id="{{ form.categorie.id_for_label }}" class="select select-bordered select-sm w-full" x-model="categorie">
+                {% for value, text in form.categorie.field.choices %}
+                    <option value="{{ value }}" {% if form.categorie.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ text }}</option>
+                {% endfor %}
+            </select>
+             {% if form.categorie.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.categorie.errors.as_text }}</span></div>{% endif %}
+        </div>
+
+        <div class="form-control w-full">
+            <label for="{{ form.montant.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.montant.label }}</span></label>
+            {{ form.montant }}
+            {% if form.montant.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.montant.errors.as_text }}</span></div>{% endif %}
+        </div>
+        
+        <div class="form-control w-full">
+            <label for="{{ form.date_transaction.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.date_transaction.label }}</span></label>
+            {{ form.date_transaction }}
+            {% if form.date_transaction.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.date_transaction.errors.as_text }}</span></div>{% endif %}
+        </div>
+
+        <div x-show="categorie === 'Parrainage'" x-transition class="form-control w-full md:col-span-2">
+             <label for="{{ form.parrainage_lie.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.parrainage_lie.label }}</span></label>
+            {{ form.parrainage_lie }}
+            {% if form.parrainage_lie.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.parrainage_lie.errors.as_text }}</span></div>{% endif %}
+        </div>
+
+        <div class="form-control w-full md:col-span-2">
+            <label for="{{ form.description.id_for_label }}" class="label"><span class="label-text text-slate-600 text-xs">{{ form.description.label }}</span></label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="label"><span class="label-text-alt text-error">{{ form.description.errors.as_text }}</span></div>{% endif %}
+        </div>
+    </div>
+</form>
+{% endblock %}
